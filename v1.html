@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>賽事補給模擬器 V1</title>
+    <style>
+        :root {
+            --primary-bg: #e6f0fa;
+            --header-bg: #4a86e8;
+            --box-bg: #ffffff;
+            --border-color: #cccccc;
+        }
+        body {
+            font-family: "Microsoft JhengHei", sans-serif;
+            background-color: #2c3e50;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            display: flex;
+            gap: 20px;
+            width: 1200px;
+            background-color: #a0c4ff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        /* 左側說明區 */
+        .left-panel {
+            flex: 1;
+            background-color: var(--primary-bg);
+            padding: 20px;
+            border-radius: 5px;
+            border: 2px solid var(--border-color);
+        }
+        .instructions-box {
+            background-color: #c9daf8;
+            padding: 15px;
+            border: 1px solid #4a86e8;
+            margin-bottom: 20px;
+        }
+        /* 右側操作區 */
+        .right-panel {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        /* 情境顯示區 */
+        .scenario-box {
+            background-color: var(--box-bg);
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 2px solid var(--border-color);
+        }
+        .scenario-image {
+            width: 150px;
+            height: 150px;
+            background-color: #eeeeee;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 1px dashed #999;
+            font-weight: bold;
+            color: #666;
+            text-align: center;
+        }
+        .scenario-info {
+            flex: 1;
+            margin-left: 20px;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+        .alert-text {
+            color: #d93025;
+            font-weight: bold;
+        }
+        /* 控制區 */
+        .controls-box {
+            background-color: var(--box-bg);
+            padding: 20px;
+            border: 2px solid var(--border-color);
+        }
+        /* 更新後的拉桿區排版 */
+        .slider-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .item-info {
+            width: 240px; 
+            display: flex;
+            flex-direction: column; 
+            justify-content: center;
+        }
+        .item-name {
+            font-weight: bold;
+            font-size: 15px;
+            color: #2c3e50;
+        }
+        .item-desc {
+            font-size: 12px;
+            color: #e06666; 
+            font-weight: bold;
+            margin-top: 4px;
+            line-height: 1.3;
+        }
+        .slider-group input[type="range"] {
+            flex: 1;
+            margin: 0 15px;
+        }
+        .slider-group span.val-display {
+            width: 60px;
+            text-align: right;
+            font-weight: bold;
+            color: #4a86e8;
+        }
+        /* 按鈕區 */
+        .btn-action {
+            background-color: #4a86e8;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .btn-action:hover {
+            background-color: #3b6bba;
+        }
+        .btn-action:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        /* 表格區 */
+        .table-box {
+            background-color: var(--box-bg);
+            padding: 20px;
+            border: 2px solid var(--border-color);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: center;
+        }
+        th, td {
+            border: 1px solid #000;
+            padding: 10px;
+        }
+        th {
+            background-color: #fff2cc;
+        }
+        /* 結果區 */
+        .result-box {
+            display: none;
+            background-color: #d9ead3;
+            padding: 20px;
+            border: 2px solid #93c47d;
+            font-size: 18px;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- 左側說明區 -->
+    <div class="left-panel">
+        <div class="instructions-box">
+            <h2 style="margin-top: 0;">賽事補給模擬器</h2>
+            <p>簡介與操作說明</p>
+        </div>
+        <p>這模擬是基於運動營養學模型而設，請根據右側的「賽事條件」來決定你的補給策略。</p>
+        <p><strong>操作步驟：</strong></p>
+        <ol>
+            <li>觀察右上方給定的天氣與賽道條件，並計算出每小時所需的補給。</li>
+            <li>移動滑動桿（拉桿）選擇你「這一個小時」想要攝取的補給品數量。</li>
+            <li>點擊「記錄此小時補給」按鈕，將數據存入下方表格。</li>
+            <li>完成所有小時的設定後，點擊「進行模擬」來檢視你的比賽結果。</li>
+        </ol>
+        <hr>
+        <p><strong>📝 公式提醒：</strong></p>
+        <ul>
+            <li>每小時碳水化合需求量：每小時建議 30g ~ 60g</li>
+            <li>每小時水分吸收量：體重(kg)*10cc，也就是大約500ml~900ml不等</li>
+            <li>水分與鈉：高溫下每小時流失量大，建議攝取 300mg ~ 500mg 鈉來預防抽筋。</li>
+        </ul>
+    </div>
+
+    <!-- 右側操作區 -->
+    <div class="right-panel">
+        
+        <!-- 情境顯示 -->
+        <div class="scenario-box">
+            <div class="scenario-image" id="scenario-icon" style="padding: 0; overflow: hidden; width: 150px; height: 220px; display: flex; align-items: center; justify-content: center;">
+            </div>
+            <div class="scenario-info">
+                <h3 style="margin-top: 0;">賽事條件：<span id="scenario-title">公路車計時賽</span></h3>
+                <ul style="margin-bottom: 0;">
+                    <li><strong>天氣：</strong><span id="scenario-weather">33°C 大太陽 (高溫炎熱，注意鈉流失)</span></li>
+                    <li><strong>目標：</strong><span id="scenario-target">總距離 90km / 配速 30km/h</span></li>
+                    <li><strong>預估時間：</strong><span id="scenario-time">3 小時</span></li>
+                    <li class="alert-text" style="margin-top: 10px;">⚠️ 突發狀況：<span id="scenario-alert">最後 1.5 小時為連續爬坡衝刺，不易進食固體食物！</span></li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 補給拉桿控制 -->
+        <div class="controls-box">
+            <h3 style="margin-top: 0;">設定 第 <span id="current-hour-display">1</span> 小時 的補給</h3>
+            
+            <div class="slider-group">
+                <div class="item-info">
+                    <span class="item-name">水 (瓶)</span>
+                    <span class="item-desc">容量：460cc</span>
+                </div>
+                <input type="range" id="val-water" min="0" max="20" value="0" oninput="updateValue('val-water', 'txt-water', ' 瓶')">
+                <span id="txt-water">0 瓶</span>
+            </div>
+
+            <div class="slider-group">
+                <div class="item-info">
+                    <span class="item-name">運動飲料 (瓶)</span>
+                    <span class="item-desc">290cc | 碳水 12.9g | 鈉 110mg</span>
+                </div>
+                <input type="range" id="val-sportdrink" min="0" max="20" value="0" oninput="updateValue('val-sportdrink', 'txt-sportdrink', ' 瓶')">
+                <span id="txt-sportdrink">0 瓶</span>
+            </div>
+
+            <div class="slider-group">
+                <div class="item-info">
+                    <span class="item-name">快衝型果膠 (包)</span>
+                    <span class="item-desc">碳水化合物：30g</span>
+                </div>
+                <input type="range" id="val-gel" min="0" max="20" value="0" oninput="updateValue('val-gel', 'txt-gel', ' 包')">
+                <span id="txt-gel">0 包</span>
+            </div>
+
+            <div class="slider-group">
+                <div class="item-info">
+                    <span class="item-name">鹽錠 (粒)</span>
+                    <span class="item-desc">電解質：鈉 95.2mg</span>
+                </div>
+                <input type="range" id="val-salt" min="0" max="20" value="0" oninput="updateValue('val-salt', 'txt-salt', ' 粒')">
+                <span id="txt-salt">0 粒</span>
+            </div>
+
+            <div class="slider-group">
+                <div class="item-info">
+                    <span class="item-name">香蕉 (根)</span>
+                    <span class="item-desc">碳水 25g | 鉀 350mg | 鎂 30mg</span>
+                </div>
+                <input type="range" id="val-banana" min="0" max="20" value="0" oninput="updateValue('val-banana', 'txt-banana', ' 根')">
+                <span id="txt-banana">0 根</span>
+            </div>
+
+            <button id="btn-record" class="btn-action" onclick="recordHour()">記錄第 1 小時補給</button>
+        </div>
+
+        <!-- 表格記錄 -->
+        <div class="table-box">
+            <table id="record-table">
+                <thead>
+                    <tr>
+                        <th>時間</th>
+                        <th>水 (瓶)</th>
+                        <th>運動飲料 (瓶)</th>
+                        <th>果膠 (包)</th>
+                        <th>鹽錠 (粒)</th>
+                        <th>香蕉 (根)</th>
+                    </tr>
+                </thead>
+                <tbody id="table-body">
+                    <!-- JS 動態寫入紀錄 -->
+                </tbody>
+            </table>
+            <br>
+            <div style="text-align: right;">
+                <button id="btn-simulate" class="btn-action" style="background-color: #e69138; display: none;" onclick="runSimulation()">進行模擬</button>
+            </div>
+        </div>
+
+        <!-- 假成績與事後檢討區塊 (預設隱藏) -->
+        <div id="result-box" class="result-box">
+            <h3 style="margin-top: 0; color: #274e13;">🏁 比賽結束！假成績結算</h3>
+            <p><strong>最終成績：</strong>3 小時 15 分 (比預期慢了 15 分鐘)</p>
+            <p><strong>📊 事後初步分析：</strong><br>系統偵測到你在第 3 小時的爬坡段遭遇了輕微的抽筋與能量衰退。這可能是因為你在前面的平路段（第1~2小時）累積的水分與鈉補充不足，或者在爬坡時試圖咀嚼固體食物影響了呼吸節奏。後續將由 AI 助教為您進行更深入的探討！</p>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // --- 題庫設定 (精準對應 4 種圖片型態，並擴充至 5 組核心賽事題目) ---
+    const scenarios = [
+        {
+            title: "夏季丘陵賽 (終點前爬坡)",
+            weather: "33°C 大太陽 (高溫炎熱，注意鈉流失)",
+            // 型態 1：騎車太陽
+            icon: `
+            <svg viewBox="0 0 150 220" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                <rect width="150" height="220" fill="#3a9fd9"/>
+                <rect y="165" width="150" height="55" fill="#dcdcdc"/>
+                <circle cx="115" cy="45" r="24" fill="#ff3b30"/>
+                <polygon points="115,12 110,18 120,18" fill="#ff6b4a"/>
+                <polygon points="115,78 110,72 120,72" fill="#ff6b4a"/>
+                <polygon points="82,45 88,40 88,50" fill="#ff6b4a"/>
+                <polygon points="148,45 142,40 142,50" fill="#ff6b4a"/>
+                <polygon points="92,22 98,24 95,30" fill="#ff6b4a"/>
+                <polygon points="138,22 132,24 135,30" fill="#ff6b4a"/>
+                <polygon points="92,68 98,66 95,60" fill="#ff6b4a"/>
+                <polygon points="138,68 132,66 135,60" fill="#ff6b4a"/>
+                <circle cx="45" cy="165" r="22" stroke="#4a4a4a" stroke-width="3" fill="none"/>
+                <circle cx="115" cy="165" r="22" stroke="#4a4a4a" stroke-width="3" fill="none"/>
+                <path d="M 45 165 L 72 165 L 92 125 L 62 125 Z M 72 165 L 62 125 M 92 125 L 115 165" stroke="#7f8c8d" stroke-width="3" fill="none"/>
+                <line x1="92" y1="125" x2="97" y2="105" stroke="#7f8c8d" stroke-width="3"/>
+                <line x1="97" y1="105" x2="106" y2="105" stroke="#333" stroke-width="3"/>
+                <line x1="62" y1="125" x2="59" y2="110" stroke="#7f8c8d" stroke-width="3"/>
+                <line x1="54" y1="110" x2="64" y2="110" stroke="#333" stroke-width="4"/>
+                <path d="M 59 110 L 72 132 L 76 160" stroke="#4a69bd" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                <path d="M 59 110 L 84 82" stroke="#8a360d" stroke-width="13" stroke-linecap="round" fill="none"/>
+                <path d="M 80 85 L 98 105" stroke="#f0a570" stroke-width="5" stroke-linecap="round" fill="none"/>
+                <circle cx="88" cy="66" r="9" fill="#f0a570"/>
+                <path d="M 78 63 Q 88 51 98 63 Z" fill="#5c4033"/>
+            </svg>`,
+            target: "總距離 90km / 配速 30km/h",
+            hours: 3,
+            alert: "最後 1 小時為連續大爬坡衝刺！爬坡時無法進食固體食物，且極度消耗能量，必須在『前一個小時(第2小時)』提前建立能量儲備。",
+            carbReq: { min: 30, max: 65 },
+            sodiumReq: { min: 400, max: 600 },
+            tacticType: "cycling_hill_climb"
+        },
+        {
+            title: "秋季西濱逆風挑戰賽",
+            weather: "15°C 陰冷天 (排汗少，但逆風阻力極大)",
+            // 型態 2：騎車冷
+            icon: `
+            <svg viewBox="0 0 150 220" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                <rect width="150" height="220" fill="#7a92a3"/>
+                <rect y="165" width="150" height="55" fill="#b8b8b8"/>
+                <g fill="#e1e8ed" opacity="0.85">
+                    <circle cx="105" cy="45" r="22"/>
+                    <circle cx="130" cy="50" r="16"/>
+                    <circle cx="85" cy="52" r="15"/>
+                    <rect x="80" y="45" width="50" height="18"/>
+                </g>
+                <circle cx="45" cy="165" r="22" stroke="#3a3a3a" stroke-width="3" fill="none"/>
+                <circle cx="115" cy="165" r="22" stroke="#3a3a3a" stroke-width="3" fill="none"/>
+                <path d="M 45 165 L 72 165 L 92 125 L 62 125 Z M 72 165 L 62 125 M 92 125 L 115 165" stroke="#535c68" stroke-width="3" fill="none"/>
+                <line x1="92" y1="125" x2="97" y2="105" stroke="#535c68" stroke-width="3"/>
+                <line x1="97" y1="105" x2="106" y2="105" stroke="#222" stroke-width="3"/>
+                <path d="M 59 110 L 72 132 L 76 160" stroke="#3b5998" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                <path d="M 59 110 L 84 82" stroke="#732d0a" stroke-width="13" stroke-linecap="round" fill="none"/>
+                <path d="M 80 85 L 98 105" stroke="#e09560" stroke-width="5" stroke-linecap="round" fill="none"/>
+                <circle cx="88" cy="66" r="9" fill="#e09560"/>
+                <path d="M 78 63 Q 88 51 98 63 Z" fill="#4a4a4a"/>
+            </svg>`,
+            target: "總距離 120km / 配速 30km/h",
+            hours: 4,
+            alert: "全程面臨強大逆風，體力消耗速度翻倍！從『第 1 小時』開始就必須積極且連續攝取碳水，否則後半段絕對會提早耗盡肝醣撞牆。",
+            carbReq: { min: 50, max: 85 }, 
+            sodiumReq: { min: 200, max: 400 },
+            tacticType: "cycling_headwind"
+        },
+        {
+            title: "盛夏烈日馬拉松挑戰",
+            weather: "34°C 烈日當空 (無遮蔽物，注意嚴重脫水)",
+            // 型態 3：跑步太陽
+            icon: `
+            <svg viewBox="0 0 150 220" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                <rect width="150" height="220" fill="#3a9fd9"/>
+                <rect y="165" width="150" height="55" fill="#dcdcdc"/>
+                <circle cx="115" cy="45" r="22" fill="#ff3b30"/>
+                <polygon points="115,15 111,20 119,20" fill="#ff6b4a"/>
+                <polygon points="115,75 111,70 119,70" fill="#ff6b4a"/>
+                <polygon points="85,45 90,41 90,49" fill="#ff6b4a"/>
+                <polygon points="145,45 140,41 140,49" fill="#ff6b4a"/>
+                <path d="M 65 100 L 80 135" stroke="#8a360d" stroke-width="14" stroke-linecap="round"/>
+                <path d="M 72 133 L 50 165 L 35 180" stroke="#4a69bd" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                <path d="M 76 133 L 95 160 L 115 170" stroke="#4a69bd" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                <path d="M 62 102 L 48 125 L 60 140" stroke="#f0a570" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                <path d="M 68 102 L 95 115 L 110 110" stroke="#f0a570" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                <circle cx="72" cy="80" r="9" fill="#f0a570"/>
+                <path d="M 66 76 Q 72 68 76 76 Z" fill="#5c4033"/>
+            </svg>`,
+            target: "總距離 42km / 全程路跑",
+            hours: 4,
+            alert: "烈日跑步排汗量巨大，每小時『鈉流失』極高！且跑步時胃部震動劇烈，『嚴禁吃香蕉等固體食物』以免劇烈胃痛，必須全靠鹽錠與能量膠精密補給！",
+            carbReq: { min: 40, max: 70 },
+            sodiumReq: { min: 450, max: 700 },
+            tacticType: "running_hot_solids"
+        },
+        {
+            title: "歲末冬風臺北馬拉松",
+            weather: "12°C 寒風細雨 (體溫流失快，隱形脫水)",
+            // 型態 4：跑步冷
+            icon: `
+            <svg viewBox="0 0 150 220" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                <rect width="150" height="220" fill="#7a92a3"/>
+                <rect y="165" width="150" height="55" fill="#b8b8b8"/>
+                <g fill="#e1e8ed" opacity="0.8">
+                    <circle cx="45" cy="35" r="15"/>
+                    <circle cx="65" cy="38" r="12"/>
+                    <circle cx="115" cy="45" r="18"/>
+                </g>
+                <path d="M 65 100 L 80 135" stroke="#732d0a" stroke-width="14" stroke-linecap="round"/>
+                <path d="M 72 133 L 50 165 L 35 180" stroke="#3b5998" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                <path d="M 76 133 L 95 160 L 115 170" stroke="#3b5998" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                <path d="M 62 102 L 48 125 L 60 140" stroke="#e09560" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                <path d="M 68 102 L 95 115 L 110 110" stroke="#e09560" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                <circle cx="72" cy="80" r="9" fill="#e09560"/>
+                <path d="M 66 76 Q 72 68 76 76 Z" fill="#4a4a4a"/>
+            </svg>`,
+            target: "總距離 42km / 目標破個人紀錄",
+            hours: 4,
+            alert: "低溫環境下不容易口渴，但體內醣原仍在高速消耗。必須『前 3 小時每小時強迫定時補給能量膠』，絕不能因為不餓不渴就不吃，否則最後 10 公里會瞬間斷電失溫！",
+            carbReq: { min: 40, max: 70 },
+            sodiumReq: { min: 200, max: 400 },
+            tacticType: "running_cold_gel"
+        },
+        {
+            title: "雙塔跨夜極限挑戰賽 (中後半段)",
+            weather: "16°C 跨夜逆風 (深夜人體吸收率差，易反胃)",
+            // 型態 2：騎車冷 (跨夜長途使用此圖)
+            icon: `
+            <svg viewBox="0 0 150 220" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                <rect width="150" height="220" fill="#0c2461"/>
+                <rect y="165" width="150" height="55" fill="#4a4a4a"/>
+                <circle cx="20" cy="30" r="1" fill="#fff"/>
+                <circle cx="130" cy="25" r="1.5" fill="#fff" opacity="0.8"/>
+                <path d="M 130 40 A 12 12 0 1 0 130 64 A 15 15 0 1 1 130 40 Z" fill="#f5cd79"/>
+                <polygon points="106,105 150,95 150,135" fill="#fff" opacity="0.2"/>
+                <circle cx="45" cy="165" r="22" stroke="#111" stroke-width="3" fill="none"/>
+                <circle cx="115" cy="165" r="22" stroke="#111" stroke-width="3" fill="none"/>
+                <path d="M 45 165 L 72 165 L 92 125 L 62 125 Z M 72 165 L 62 125 M 92 125 L 115 165" stroke="#2f3542" stroke-width="3" fill="none"/>
+                <path d="M 59 110 L 72 132 L 76 160" stroke="#2e519c" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                <path d="M 59 110 L 84 82" stroke="#8a360d" stroke-width="13" stroke-linecap="round" fill="none"/>
+                <path d="M 80 85 L 98 105" stroke="#f0a570" stroke-width="5" stroke-linecap="round" fill="none"/>
+                <circle cx="88" cy="66" r="9" fill="#f0a570"/>
+                <path d="M 78 63 Q 88 51 98 63 Z" fill="#2f3542"/>
+            </svg>`,
+            target: "長途耐久段 / 模擬 5 小時",
+            hours: 5,
+            alert: "深夜跨夜時段（第 3、4 小時），胃部對純液態及過甜的果膠容易反胃。此時非常需要吃『固體食物(香蕉)』來穩定胃酸與血糖，否則會因空腹引發大撞牆與強烈睡意！",
+            carbReq: { min: 45, max: 80 },
+            sodiumReq: { min: 250, max: 450 },
+            tacticType: "cycling_midnight_solids"
+        }
+    ];
+
+    let currentScenario;
+    let currentHour = 1;
+    let totalHours = 3;
+    let userRecords = []; 
+
+    window.onload = function() {
+        const randomIndex = Math.floor(Math.random() * scenarios.length);
+        currentScenario = scenarios[randomIndex];
+        totalHours = currentScenario.hours;
+
+        document.getElementById('scenario-title').innerText = currentScenario.title;
+        document.getElementById('scenario-weather').innerText = currentScenario.weather;
+        document.getElementById('scenario-icon').innerHTML = currentScenario.icon; 
+        document.getElementById('scenario-target').innerText = currentScenario.target;
+        document.getElementById('scenario-time').innerText = currentScenario.hours + " 小時";
+        document.getElementById('scenario-alert').innerText = currentScenario.alert;
+    };
+
+    function updateValue(sliderId, textId, unit) {
+        const val = document.getElementById(sliderId).value;
+        document.getElementById(textId).innerText = val + unit;
+    }
+
+    function recordHour() {
+        if (currentHour > totalHours) return;
+
+        const record = {
+            hour: currentHour,
+            water: parseInt(document.getElementById('val-water').value),
+            sportdrink: parseInt(document.getElementById('val-sportdrink').value),
+            gel: parseInt(document.getElementById('val-gel').value),
+            salt: parseInt(document.getElementById('val-salt').value),
+            banana: parseInt(document.getElementById('val-banana').value)
+        };
+        userRecords.push(record);
+
+        const tbody = document.getElementById('table-body');
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>第 ${currentHour} 小時</td>
+            <td>${record.water}</td>
+            <td>${record.sportdrink}</td>
+            <td>${record.gel}</td>
+            <td>${record.salt}</td>
+            <td>${record.banana}</td>
+        `;
+        tbody.appendChild(tr);
+
+        currentHour++;
+
+        if (currentHour > totalHours) {
+            document.getElementById('btn-record').style.display = 'none';
+            document.getElementById('current-hour-display').innerText = '完成';
+            document.getElementById('btn-simulate').style.display = 'inline-block';
+            
+            const sliders = document.querySelectorAll('input[type="range"]');
+            sliders.forEach(slider => slider.disabled = true);
+        } else {
+            document.getElementById('current-hour-display').innerText = currentHour;
+            document.getElementById('btn-record').innerText = `記錄第 ${currentHour} 小時補給`;
+            resetSliders();
+        }
+    }
+
+    function resetSliders() {
+        const ids = ['water', 'sportdrink', 'gel', 'salt', 'banana'];
+        const units = [' 瓶', ' 瓶', ' 包', ' 粒', ' 根'];
+        ids.forEach((id, index) => {
+            document.getElementById(`val-${id}`).value = 0;
+            document.getElementById(`txt-${id}`).innerText = "0" + units[index];
+        });
+    }
+
+    function runSimulation() {
+        document.getElementById('btn-simulate').disabled = true;
+        document.getElementById('btn-simulate').innerText = "戰術運算中...";
+        
+        setTimeout(() => {
+            generateReport(); 
+            document.getElementById('result-box').style.display = 'block';
+            document.getElementById('btn-simulate').style.display = 'none';
+        }, 1000);
+    }
+
+    // --- 進階運算核心：動態能量庫存 + 腸胃吸收極限判定 ---
+    function generateReport() {
+        let analysisHTML = "";
+        let tacticHTML = "";
+        let totalScore = 100;
+
+        // 新增：跨小時能量庫存池、腸胃不適狀態標籤
+        let energyReserve = 0; 
+        let stomachExploded = false;
+
+        // 1. 每小時基礎運算 (加入流動式能量判定)
+        userRecords.forEach(data => {
+            let hourCarbs = (data.sportdrink * 12.9) + (data.gel * 30) + (data.banana * 25);
+            let hourSodium = (data.sportdrink * 110) + (data.salt * 95.2);
+            let feedback = [];
+
+            // 【生理防禦機制】單時攝取上限 90g 碳水，超過的話腸胃罷工、無法吸收，且大扣分！
+            let effectiveAbsorbedCarbs = hourCarbs;
+            if (hourCarbs > 90) {
+                stomachExploded = true;
+                effectiveAbsorbedCarbs = 90; // 腸胃最多只能強行吸收 90g，剩下的在胃裡作怪
+                feedback.push(`<span style="color:#b33939; font-weight:bold;">🤢 腸胃大暴走！單時攝取 ${hourCarbs.toFixed(1)}g 碳水遠超人類吸收上限(90g)，引發劇烈胃痛與嘔吐！</span>`);
+                totalScore -= 25;
+            }
+
+            // 【能量總合運算】當下有效吸收的碳水 + 上一小時留下來的庫存能量
+            let totalAvailableCarbs = effectiveAbsorbedCarbs + energyReserve;
+            let minReq = currentScenario.carbReq.min;
+
+            // 判斷這一小時的綜合能量是否足夠
+            if (totalAvailableCarbs < minReq) {
+                feedback.push(`<span style="color:red">碳水嚴重不足（當下+庫存僅 ${totalAvailableCarbs.toFixed(1)}g），身體進入斷電撞牆期！</span>`);
+                totalScore -= 8;
+                energyReserve = 0; // 庫存歸零
+            } else {
+                // 扣除本小時的體能消耗，剩下的能量存入池子，結轉到下一小時！
+                energyReserve = totalAvailableCarbs - minReq;
+                
+                // 生理保護上限：血液與肝醣短時間內儲存有限，結轉到下一小時的暫存能量上限為 60g
+                if (energyReserve > 60) energyReserve = 60;
+
+                if (hourCarbs > 0) {
+                    feedback.push(`<span style="color:green">碳水充足（當下+庫存共 ${totalAvailableCarbs.toFixed(1)}g），體能運作流暢！</span>`);
+                } else {
+                    feedback.push(`<span style="color:#227093">本時未進食，但依賴前一小時留下的豐富庫存（剩餘 ${totalAvailableCarbs.toFixed(1)}g）成功撐過！</span>`);
+                }
+            }
+
+            // 鈉流失判斷
+            if (hourSodium < currentScenario.sodiumReq.min) {
+                feedback.push(`<span style="color:red">電解質不足(${hourSodium.toFixed(1)}mg)</span>`);
+                totalScore -= 5;
+            } else {
+                feedback.push(`<span style="color:green">電解質充足(${hourSodium.toFixed(1)}mg)</span>`);
+            }
+
+            analysisHTML += `<li style="margin-bottom: 8px;"><strong>第 ${data.hour} 小時：</strong> ${feedback.join("，")}</li>`;
+        });
+
+        // 2. 跨小時進階戰術分析 (精準判斷 5 組題目)
+        tacticHTML += `<h4 style="color:#00509e; margin-bottom: 5px;">🚴 賽事突發狀況戰術檢討：</h4>`;
+
+        if (stomachExploded) {
+            tacticHTML += `<p style="color: #d93025;">⚠️ <strong>教練嚴厲警告：</strong>你有某一小時補給過猛了！馬拉松與自行車運動講求『定量、定時』補給。一次吃太多只會囤積在胃裡無法消化，導致完全無法完賽！</p>`;
+        }
+
+        // 【組別 1 判斷：夏季丘陵賽】
+        if (currentScenario.tacticType === "cycling_hill_climb" && userRecords.length >= 3) {
+            let hour2Carbs = (userRecords[1].sportdrink * 12.9) + (userRecords[1].gel * 30) + (userRecords[1].banana * 25);
+            let hour3 = userRecords[2];
+
+            if (hour2Carbs >= 50 && hour2Carbs <= 90) {
+                tacticHTML += `<p style="color: #274e13;">✅ <strong>超前部署成功：</strong>你在第 2 小時適量補充了 ${hour2Carbs.toFixed(1)}g 高碳水，成功為第 3 小時的魔王爬坡儲備了充足肝醣！</p>`;
+                totalScore += 10;
+            } else if (hour2Carbs < 50) {
+                tacticHTML += `<p style="color: #d93025;">❌ <strong>戰術失誤：</strong>最後一小時是高強度爬坡，你卻沒有在第 2 小時提早增補，爬坡時才吃根本來不及消化，後半段必定軟腿！</p>`;
+                totalScore -= 15;
+            }
+            if (hour3.banana > 0) {
+                tacticHTML += `<p style="color: #d93025;">❌ <strong>補給時機錯誤：</strong>第 3 小時連續大爬坡心率極高，此時吃香蕉(固體)會嚴重影響呼吸節奏且無法消化，非常不智！</p>`;
+                totalScore -= 10;
+            }
+        }
+
+        // 【組別 2 判斷：秋季西濱逆風賽】
+        else if (currentScenario.tacticType === "cycling_headwind" && userRecords.length >= 2) {
+            let h1Carbs = (userRecords[0].sportdrink * 12.9) + (userRecords[0].gel * 30) + (userRecords[0].banana * 25);
+            let h2Carbs = (userRecords[1].sportdrink * 12.9) + (userRecords[1].gel * 30) + (userRecords[1].banana * 25);
+
+            if (h1Carbs >= 45 && h1Carbs <= 90 && h2Carbs >= 45 && h2Carbs <= 90) {
+                tacticHTML += `<p style="color: #274e13;">✅ <strong>抗風戰術成功：</strong>面對強大逆風的高消耗，你前兩小時穩定補給，完美維持了體內能量池！</p>`;
+                totalScore += 10;
+            } else if (h1Carbs < 45 || h2Carbs < 45) {
+                tacticHTML += `<p style="color: #d93025;">❌ <strong>逆風對策失敗：</strong>逆風體力消耗極快，你前兩小時補給量太低，身體提早進入飢餓感，後半段直接失速。</p>`;
+                totalScore -= 15;
+            }
+        }
+
+        // 【組別 3 判斷：盛夏烈日馬拉松】
+        else if (currentScenario.tacticType === "running_hot_solids") {
+            let ateBanana = userRecords.some(r => r.banana > 0);
+            if (!ateBanana) {
+                tacticHTML += `<p style="color: #274e13;">✅ <strong>路跑腸胃戰術成功：</strong>做得好！烈日跑步時胃部晃動劇烈，你完全避開了固體香蕉，全靠電解質和能量膠，有效防止了胃痙攣！</p>`;
+                totalScore += 10;
+            } else {
+                tacticHTML += `<p style="color: #d93025;">❌ <strong>腸胃戰術失誤：</strong>在 34°C 烈日下跑步，你居然吃了固體香蕉！跑步的劇烈震動會讓固體食物在胃中翻滾，極易引發嚴重胃痛與反胃。</p>`;
+                totalScore -= 15;
+            }
+        }
+
+        // 【組別 4 判斷：歲末冬風馬拉松】
+        else if (currentScenario.tacticType === "running_cold_gel" && userRecords.length >= 3) {
+            let missedGel = userRecords.slice(0, 3).some(r => r.gel === 0);
+            if (!missedGel) {
+                tacticHTML += `<p style="color: #274e13;">✅ <strong>低溫定時補給成功：</strong>太棒了！雖然天氣寒冷不易口渴，但你依然在上半場每小時定時塞入能量膠，成功對抗了隱形醣原流失！</p>`;
+                totalScore += 10;
+            } else {
+                tacticHTML += `<p style="color: #d93025;">❌ <strong>隱形糖荒撞牆：</strong>低溫環境下你因為不渴不餓，就在前 3 小時漏掉了能量膠補給。這會讓你在第四小時體內醣原歸零，發生致命的失溫與大撞牆！</p>`;
+                totalScore -= 15;
+            }
+        }
+
+        // 【組別 5 判斷：雙塔跨夜極限挑戰賽】
+        else if (currentScenario.tacticType === "cycling_midnight_solids" && userRecords.length >= 4) {
+            let hadMidnightBanana = userRecords[2].banana > 0 || userRecords[3].banana > 0;
+            if (hadMidnightBanana) {
+                tacticHTML += `<p style="color: #274e13;">✅ <strong>跨夜抗反胃戰術成功：</strong>非常聰明！在深夜第 3、4 小時胃部空虛反胃時，你補充了固體香蕉，有效中和了胃酸、擊退了低血糖引發的睡意！</p>`;
+                totalScore += 10;
+            } else {
+                tacticHTML += `<p style="color: #d93025;">❌ <strong>長途空腹崩潰：</strong>在跨夜深夜，你連續數小時只吃過甜的液態果膠，這會讓胃部極度反胃。此時缺乏固體食物，會導致你因胃酸過多與精神不濟直接崩潰。</p>`;
+                totalScore -= 15;
+            }
+        }
+
+        // 3. 結語統整
+        let finalStatus = "";
+        if (totalScore >= 90) finalStatus = "完美戰術完賽！你已經具備專業選手的策略核心！🏆";
+        else if (totalScore >= 70) finalStatus = "順利完賽！整體概念正確，但細節戰術還有優化空間。⏱️";
+        else finalStatus = "後段嚴重爆掉！補給策略出了嚴重問題，恐面臨抽筋退賽！🚑";
+
+        if (totalScore < 0) totalScore = 0;
+
+        document.getElementById('result-box').innerHTML = `
+            <h3 style="margin-top: 0; color: #274e13;">🏁 比賽結束！科學化補給分析報告</h3>
+            <p><strong>補給綜合評分：</strong> <span style="font-size: 20px; color: #274e13; font-weight: bold;">${totalScore} 分</span> - <strong>${finalStatus}</strong></p>
+            <div style="background-color: #f0f7ff; padding: 12px; border-left: 4px solid #00509e; margin: 15px 0; border-radius: 4px;">
+                ${tacticHTML}
+            </div>
+            <h4 style="margin-bottom: 5px;">📊 每小時基礎檢討：</h4>
+            <ul style="line-height: 1.6; margin-top: 0;">${analysisHTML}</ul>
+        `;
+    }
+</script>
+
+</body>
+</html>
